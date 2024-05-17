@@ -7,6 +7,9 @@ function main(workbook: ExcelScript.Workbook) {
     let isg_idx = 0;
     let yaml_config = "isg:\n";
 
+    // Sort by ISG 
+	selectedSheet.getRange("A1:O513").getSort().apply([{ key: 5, ascending: true }], false, true, ExcelScript.SortOrientation.rows);
+
     for (let n = startRow; n < startRow + numRanges * 8; n += 8) {
         const startCell = selectedSheet.getCell(n - 1, 8); // Column I
         const endCell = selectedSheet.getCell(n + 6, 9);   // Column J
@@ -27,6 +30,9 @@ function main(workbook: ExcelScript.Workbook) {
         Cell.setValue(concatenatedString);
         qstring = '"' + concatenatedString + '"';
         yaml_config += "  lane_swap: " + qstring + "\n";
+
+        // Revert back the Chip Lane soring
+        range.getSort().apply([{ key: 0, ascending: true }], false, false, ExcelScript.SortOrientation.rows);
 
         // Convert TX PN Polarity
         const txCell = selectedSheet.getCell(n - 1, 10); // Column K
@@ -68,7 +74,10 @@ function main(workbook: ExcelScript.Workbook) {
         isg_idx += 1;
     }
 
-    const yamlCell = selectedSheet.getCell(515, 1); // Column A, ROW 515
+    const yamlCell = selectedSheet.getCell(515, 8); // Column I, ROW 515
     yamlCell.setValue(yaml_config);
+
+    // Sort by IB and PIC
+    selectedSheet.getRange("A1:O513").getSort().apply([{key: 6, ascending: true}, {key: 7, ascending: true}], false, true, ExcelScript.SortOrientation.rows);
 }
 
