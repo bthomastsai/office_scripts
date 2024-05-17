@@ -1,0 +1,74 @@
+
+function main(workbook: ExcelScript.Workbook) {
+   
+    let selectedSheet = workbook.getActiveWorksheet();
+    const startRow = 2; // Starting row
+    const numRanges = 64; // Number of ranges to sort
+    let isg_idx = 0;
+    let yaml_config = "isg:\n";
+
+    for (let n = startRow; n < startRow + numRanges * 8; n += 8) {
+        const startCell = selectedSheet.getCell(n - 1, 8); // Column I
+        const endCell = selectedSheet.getCell(n + 6, 9);   // Column J
+        const range = selectedSheet.getRangeByIndexes(startCell.getRowIndex(), startCell.getColumnIndex(), 8, 2);
+        range.getSort().apply([{ key: 1, ascending: true }], false, false, ExcelScript.SortOrientation.rows);
+
+        let qstring="";
+        // Convert Lane Swap
+        qstring = '"' + isg_idx + '"';
+        yaml_config += "- id: " + qstring + "\n";
+        const prange = selectedSheet.getRangeByIndexes(startCell.getRowIndex(), startCell.getColumnIndex(), 8, 1);
+        const values = prange.getValues(); 
+        let concatenatedString = "";
+        for (let i = 0; i < values.length; i++) {
+            concatenatedString += values[i][0]; // Assuming single column
+        }
+        const Cell = selectedSheet.getCell(n - 1, 12);   // Column M
+        Cell.setValue(concatenatedString);
+        qstring = '"' + concatenatedString + '"';
+        yaml_config += "  lane_swap: " + qstring + "\n";
+
+        // Convert TX PN Polarity
+        const txCell = selectedSheet.getCell(n - 1, 10); // Column K
+        const txrange = selectedSheet.getRangeByIndexes(txCell.getRowIndex(), txCell.getColumnIndex(), 8, 1);
+        const txvalues = txrange.getValues(); 
+        let txString = "";
+        for (let i = 0; i < txvalues.length; i++) {
+            if (txvalues[i][0] === "") {
+                txString += "0";
+            } else if (txvalues[i][0] === "Y") {
+                txString += "1";
+            } else {
+                console.log("The cell contains a different value: ");
+            }
+        }
+        const txCell2 = selectedSheet.getCell(n - 1, 13);   // Column N
+        txCell2.setValue(txString);
+
+        // Convert RX PN Polarity
+        const rxCell = selectedSheet.getCell(n - 1, 11); // Column L
+        const rxrange = selectedSheet.getRangeByIndexes(rxCell.getRowIndex(), rxCell.getColumnIndex(), 8, 1);
+        const rxvalues = rxrange.getValues(); 
+        let rxString = "";
+        for (let i = 0; i < rxvalues.length; i++) {
+            if (rxvalues[i][0] === "") {
+                rxString += "0";
+            } else if (rxvalues[i][0] === "Y") {
+                rxString += "1";
+            } else {
+                console.log("The cell contains a different value: ");
+            }
+        }
+        const rxCell2 = selectedSheet.getCell(n - 1, 14);   // Column O
+        rxCell2.setValue(rxString);
+
+        qstring = '"' + rxString + '"';
+        yaml_config += "  rx_polarity: " + qstring + "\n";
+        yaml_config += "  tx_polarity: " + '"' + txString + '"' + "\n";
+        isg_idx += 1;
+    }
+
+    const yamlCell = selectedSheet.getCell(515, 1); // Column A, ROW 515
+    yamlCell.setValue(yaml_config);
+}
+

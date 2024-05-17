@@ -1,0 +1,25 @@
+function main(workbook: ExcelScript.Workbook) {
+    const sheet = workbook.getActiveWorksheet();
+
+    const column1 = "J"; // Change to the first column letter
+    const column2 = "N"; // Change to the second column letter
+
+    const numRows = 512;
+
+    // Get the data from the specified columns
+    const range1 = sheet.getRange(`${column1}1:${column1}${numRows}`).getValues();
+    const range2 = sheet.getRange(`${column2}1:${column2}${numRows}`).getValues();
+
+    let differencesFound = 0;
+    for (let i = 0; i < numRows; i++) {
+        const diffCell = sheet.getCell(i, 16); //Column O 
+        if (range1[i][0] !== range2[i][0]) {
+            differencesFound++;
+            diffCell.setValue("diff");
+        } else {
+            diffCell.setValue("same");
+        }
+    }
+    console.log(differencesFound);
+}
+
