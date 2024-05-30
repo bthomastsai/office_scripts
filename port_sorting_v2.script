@@ -5,11 +5,12 @@ function main(workbook: ExcelScript.Workbook) {
     const startRow = 2; // Starting row
     const numRanges = 64; // Number of ranges to sort
     let isg_idx = 0;
-    let yaml_config = "isg:\n";
+    let serdes_string = "  isg:\n";
 
     // Sort by ISG 
 	selectedSheet.getRange("A1:O513").getSort().apply([{ key: 5, ascending: true }], false, true, ExcelScript.SortOrientation.rows);
 
+    // Come out SERDES mapping and polarity according to ISG sequence
     for (let n = startRow; n < startRow + numRanges * 8; n += 8) {
         const startCell = selectedSheet.getCell(n - 1, 8); // Column I
         const endCell = selectedSheet.getCell(n + 6, 9);   // Column J
@@ -19,7 +20,7 @@ function main(workbook: ExcelScript.Workbook) {
         let qstring="";
         // Convert Lane Swap
         qstring = '"' + isg_idx + '"';
-        yaml_config += "- id: " + qstring + "\n";
+        serdes_string += "  - id: " + qstring + "\n";
         const prange = selectedSheet.getRangeByIndexes(startCell.getRowIndex(), startCell.getColumnIndex(), 8, 1);
         const values = prange.getValues(); 
         let concatenatedString = "";
@@ -29,7 +30,7 @@ function main(workbook: ExcelScript.Workbook) {
         const Cell = selectedSheet.getCell(n - 1, 12);   // Column M
         Cell.setValue(concatenatedString);
         qstring = '"' + concatenatedString + '"';
-        yaml_config += "  lane_swap: " + qstring + "\n";
+        serdes_string += "    lane_swap: " + qstring + "\n";
 
         // Revert back the Chip Lane soring
         range.getSort().apply([{ key: 0, ascending: true }], false, false, ExcelScript.SortOrientation.rows);
@@ -69,13 +70,42 @@ function main(workbook: ExcelScript.Workbook) {
         rxCell2.setValue(rxString);
 
         qstring = '"' + rxString + '"';
-        yaml_config += "  rx_polarity: " + qstring + "\n";
-        yaml_config += "  tx_polarity: " + '"' + txString + '"' + "\n";
+        serdes_string += "    rx_polarity: " + qstring + "\n";
+        serdes_string += "    tx_polarity: " + '"' + txString + '"' + "\n";
         isg_idx += 1;
     }
 
-    const yamlCell = selectedSheet.getCell(515, 8); // Column I, ROW 515
-    yamlCell.setValue(yaml_config);
+    //// Program all SERDES related information on Column I, Row 515
+    //const yamlCell = selectedSheet.getCell(515, 8); // Column I, ROW 515
+    //yamlCell.setValue(serdes_string);
+
+    // Sort by Device Front Port
+    let port_config = "  devports:\n"
+    port_config += '  - id: "0"\n'
+    port_config += '    sysport: "1000"\n'
+    port_config += '    type: "cpu"\n'
+	selectedSheet.getRange("A1:O513").getSort().apply([{ key: 0, ascending: true }], false, true, ExcelScript.SortOrientation.rows);
+    for (let n = startRow; n < startRow + numRanges ; n += 1) {
+        const isg_cell = selectedSheet.getCell(n - 1, 5); // Column F, ISG
+        const port_cell = selectedSheet.getCell(n - 1, 0); // Column A, Device Front Port 
+        const isg_value = isg_cell.getValue();
+        const port_value = port_cell.getValue();
+
+        let port_string = '  - fec: "KPFEC"\n';
+        port_string += '    id: "' + port_value + '"\n';
+        port_string += '    lanes: "0:8"\n';
+        port_string += '    serdes_group: "' + isg_value + '"\n';
+        port_string += '    speed: "800G"\n';
+        port_string += '    sysport: "' + port_value + '"\n';
+        port_string += '    type: "eth"\n';
+
+        port_config += port_string;
+    }
+
+    let yaml_string = port_config + serdes_string;
+    // Program all dev front ports and isg serdes mapping on Column A, Row 515
+    const yamlCell = selectedSheet.getCell(515, 0); // Column A, ROW 515
+    yamlCell.setValue(yaml_string);
 
     // Sort by IB and PIC
     selectedSheet.getRange("A1:O513").getSort().apply([{key: 6, ascending: true}, {key: 7, ascending: true}], false, true, ExcelScript.SortOrientation.rows);
